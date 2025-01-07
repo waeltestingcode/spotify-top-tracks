@@ -119,7 +119,7 @@ function App() {
 
       // Get top tracks
       const tracksResponse = await fetch(
-        'https://api.spotify.com/v1/me/top/tracks?limit=10&time_range=medium_term',
+        'https://api.spotify.com/v1/me/top/tracks?limit=10&time_range=long_term',
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
