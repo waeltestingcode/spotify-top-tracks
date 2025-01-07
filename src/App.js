@@ -15,6 +15,9 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    // Clear any existing error when component mounts
+    setError(null);
+
     const hash = window.location.hash
       .substring(1)
       .split('&')
@@ -24,13 +27,32 @@ function App() {
         return initial;
       }, {});
 
+    // Check for access token
     if (hash.access_token) {
-      setToken(hash.access_token);
-      // Clear the hash from the URL
-      window.location.hash = '';
+      // Validate token by making a test request
+      const validateToken = async () => {
+        try {
+          const response = await fetch('https://api.spotify.com/v1/me', {
+            headers: { 'Authorization': `Bearer ${hash.access_token}` }
+          });
+          
+          if (response.ok) {
+            setToken(hash.access_token);
+            window.location.hash = ''; // Clear the hash
+          } else {
+            throw new Error('Invalid token');
+          }
+        } catch (error) {
+          console.error('Token validation failed:', error);
+          setError('Authentication failed. Please try logging in again.');
+          setToken(null);
+        }
+      };
+
+      validateToken();
     }
 
-    // Check if there's an error parameter
+    // Check for error in URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('error')) {
       setError('Authentication failed. Please try again.');
@@ -44,12 +66,18 @@ function App() {
   };
 
   const login = () => {
-    setError(null); // Clear any existing errors
-    window.location = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${SCOPES.join('%20')}&response_type=token&show_dialog=true`;
+    setError(null);
+    setToken(null);
+    // Add state parameter for security and timestamp to prevent caching
+    const state = Math.random().toString(36).substring(7);
+    window.location = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${SCOPES.join('%20')}&response_type=token&show_dialog=true&state=${state}`;
   };
 
   const createTopTracksPlaylist = async () => {
-    if (!token) return;
+    if (!token) {
+      setError('No authentication token found. Please log in.');
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -60,6 +88,12 @@ function App() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
+      // If unauthorized, clear token and ask to login again
+      if (userResponse.status === 401) {
+        setToken(null);
+        throw new Error('Session expired. Please log in again.');
+      }
+
       let errorData;
       try {
         errorData = await userResponse.json();
