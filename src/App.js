@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 const SPOTIFY_CLIENT_ID = process.env.REACT_APP_SPOTIFY_CLIENT_ID;
-const REDIRECT_URI = 'https://waeltestingcode.github.io/spotify-top-tracks/callback';
+const REDIRECT_URI = 'https://waeltestingcode.github.io/spotify-top-tracks';
 const SCOPES = [
   'user-top-read',
   'playlist-modify-public',
