@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/spotify-top-tracks/static/css/main.4463e27c.css",
-    "main.js": "/spotify-top-tracks/static/js/main.a113ef52.js",
+    "main.js": "/spotify-top-tracks/static/js/main.fbbc5e1f.js",
     "index.html": "/spotify-top-tracks/index.html",
     "main.4463e27c.css.map": "/spotify-top-tracks/static/css/main.4463e27c.css.map",
-    "main.a113ef52.js.map": "/spotify-top-tracks/static/js/main.a113ef52.js.map"
+    "main.fbbc5e1f.js.map": "/spotify-top-tracks/static/js/main.fbbc5e1f.js.map"
   },
   "entrypoints": [
     "static/css/main.4463e27c.css",
-    "static/js/main.a113ef52.js"
+    "static/js/main.fbbc5e1f.js"
   ]
 }
