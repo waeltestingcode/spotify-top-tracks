@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-const SPOTIFY_CLIENT_ID = process.env.REACT_APP_SPOTIFY_CLIENT_ID;
+const SPOTIFY_CLIENT_ID = '73dcf65d315e4714a9e27a61131d84ad';
 const REDIRECT_URI = 'https://waeltestingcode.github.io/spotify-top-tracks';
 const SCOPES = [
   'user-top-read',
@@ -29,8 +29,9 @@ function App() {
       }, {});
 
     if (hash.access_token) {
-      sessionStorage.setItem('spotify_token', hash.access_token);
-      setToken(hash.access_token);
+      const newToken = hash.access_token;
+      sessionStorage.setItem('spotify_token', newToken);
+      setToken(newToken);
       window.location.hash = '';
     } else {
       const storedToken = sessionStorage.getItem('spotify_token');
@@ -45,21 +46,16 @@ function App() {
     setToken(null);
     setError(null);
 
-    const state = Math.random().toString(36).substring(7);
-    sessionStorage.setItem('spotify_auth_state', state);
-
     const authUrl = new URL('https://accounts.spotify.com/authorize');
-    const params = {
+    const params = new URLSearchParams({
       client_id: SPOTIFY_CLIENT_ID,
       response_type: 'token',
       redirect_uri: REDIRECT_URI,
-      state: state,
       scope: SCOPES.join(' '),
-      show_dialog: 'true'
-    };
-    
-    authUrl.search = new URLSearchParams(params).toString();
-    window.location.href = authUrl.toString();
+      show_dialog: true
+    });
+
+    window.location.href = `${authUrl}?${params.toString()}`;
   };
 
   const handleTokenExpiration = () => {
