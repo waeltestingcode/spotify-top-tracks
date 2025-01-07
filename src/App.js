@@ -26,11 +26,26 @@ function App() {
 
     if (hash.access_token) {
       setToken(hash.access_token);
+      // Clear the hash from the URL
+      window.location.hash = '';
+    }
+
+    // Check if there's an error parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('error')) {
+      setError('Authentication failed. Please try again.');
     }
   }, []);
 
+  // Add a function to handle token expiration
+  const handleTokenExpiration = () => {
+    setToken(null);
+    setError('Session expired. Please log in again.');
+  };
+
   const login = () => {
-    window.location = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${SCOPES.join('%20')}&response_type=token`;
+    setError(null); // Clear any existing errors
+    window.location = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${SCOPES.join('%20')}&response_type=token&show_dialog=true`;
   };
 
   const createTopTracksPlaylist = async () => {
@@ -45,12 +60,22 @@ function App() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
+      let errorData;
+      try {
+        errorData = await userResponse.json();
+      } catch (e) {
+        // If response isn't JSON, it might be an auth error
+        if (!userResponse.ok) {
+          throw new Error('Authentication failed. Please try logging in again.');
+        }
+        throw new Error('Unexpected response from Spotify');
+      }
+
       if (!userResponse.ok) {
-        const errorData = await userResponse.json();
-        throw new Error(`Failed to get user profile: ${errorData.error.message}`);
+        throw new Error(`Failed to get user profile: ${errorData.error?.message || 'Unknown error'}`);
       }
       
-      const userData = await userResponse.json();
+      const userData = errorData; // reuse the parsed response
 
       // Get top tracks
       const tracksResponse = await fetch(
@@ -130,7 +155,9 @@ function App() {
         <h1>Spotify Top Tracks Playlist Creator</h1>
         {error && <p className="error-message">{error}</p>}
         {!token ? (
-          <button onClick={login}>Login with Spotify</button>
+          <button onClick={login}>
+            {error ? 'Login Again' : 'Login with Spotify'}
+          </button>
         ) : (
           <button 
             onClick={createTopTracksPlaylist}
