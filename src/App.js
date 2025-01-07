@@ -15,6 +15,8 @@ function App() {
   const [token, setToken] = useState(null);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [timeRange, setTimeRange] = useState('long_term'); // Default to long_term
+  const [trackCount, setTrackCount] = useState(10); // Default to 10 tracks
 
   useEffect(() => {
     setError(null);
@@ -119,7 +121,7 @@ function App() {
 
       // Get top tracks
       const tracksResponse = await fetch(
-        'https://api.spotify.com/v1/me/top/tracks?limit=10&time_range=long_term',
+        `https://api.spotify.com/v1/me/top/tracks?limit=${trackCount}&time_range=${timeRange}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -146,7 +148,7 @@ function App() {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            name: 'My Top 10 Tracks',
+            name: `My Top ${trackCount} Tracks`,
             description: 'Created by Top Tracks App'
           })
         }
@@ -199,12 +201,38 @@ function App() {
             {error ? 'Login Again' : 'Login with Spotify'}
           </button>
         ) : (
-          <button 
-            onClick={createTopTracksPlaylist}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Creating...' : 'Create Top 10 Playlist'}
-          </button>
+          <>
+            <div>
+              <label htmlFor="timeRange">Select Time Range:</label>
+              <select
+                id="timeRange"
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+              >
+                <option value="short_term">Last 4 Weeks</option>
+                <option value="medium_term">Last 6 Months</option>
+                <option value="long_term">All Time</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="trackCount">Select Number of Tracks:</label>
+              <select
+                id="trackCount"
+                value={trackCount}
+                onChange={(e) => setTrackCount(e.target.value)}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+            <button 
+              onClick={createTopTracksPlaylist}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Creating...' : 'Create Playlist'}
+            </button>
+          </>
         )}
       </header>
     </div>
