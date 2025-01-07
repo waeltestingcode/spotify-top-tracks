@@ -6,7 +6,9 @@ const REDIRECT_URI = 'https://waeltestingcode.github.io/spotify-top-tracks';
 const SCOPES = [
   'user-top-read',
   'playlist-modify-public',
-  'playlist-modify-private'
+  'playlist-modify-private',
+  'user-read-private',
+  'user-read-email'
 ];
 
 function App() {
@@ -15,7 +17,6 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Clear any existing error when component mounts
     setError(null);
 
     const hash = window.location.hash
@@ -27,50 +28,44 @@ function App() {
         return initial;
       }, {});
 
-    // Check for access token
     if (hash.access_token) {
-      // Validate token by making a test request
-      const validateToken = async () => {
-        try {
-          const response = await fetch('https://api.spotify.com/v1/me', {
-            headers: { 'Authorization': `Bearer ${hash.access_token}` }
-          });
-          
-          if (response.ok) {
-            setToken(hash.access_token);
-            window.location.hash = ''; // Clear the hash
-          } else {
-            throw new Error('Invalid token');
-          }
-        } catch (error) {
-          console.error('Token validation failed:', error);
-          setError('Authentication failed. Please try logging in again.');
-          setToken(null);
-        }
-      };
-
-      validateToken();
-    }
-
-    // Check for error in URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('error')) {
-      setError('Authentication failed. Please try again.');
+      sessionStorage.setItem('spotify_token', hash.access_token);
+      setToken(hash.access_token);
+      window.location.hash = '';
+    } else {
+      const storedToken = sessionStorage.getItem('spotify_token');
+      if (storedToken) {
+        setToken(storedToken);
+      }
     }
   }, []);
 
-  // Add a function to handle token expiration
-  const handleTokenExpiration = () => {
+  const login = () => {
+    sessionStorage.removeItem('spotify_token');
     setToken(null);
-    setError('Session expired. Please log in again.');
+    setError(null);
+
+    const state = Math.random().toString(36).substring(7);
+    sessionStorage.setItem('spotify_auth_state', state);
+
+    const authUrl = new URL('https://accounts.spotify.com/authorize');
+    const params = {
+      client_id: SPOTIFY_CLIENT_ID,
+      response_type: 'token',
+      redirect_uri: REDIRECT_URI,
+      state: state,
+      scope: SCOPES.join(' '),
+      show_dialog: 'true'
+    };
+    
+    authUrl.search = new URLSearchParams(params).toString();
+    window.location.href = authUrl.toString();
   };
 
-  const login = () => {
-    setError(null);
+  const handleTokenExpiration = () => {
+    sessionStorage.removeItem('spotify_token');
     setToken(null);
-    // Add state parameter for security and timestamp to prevent caching
-    const state = Math.random().toString(36).substring(7);
-    window.location = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${SCOPES.join('%20')}&response_type=token&show_dialog=true&state=${state}`;
+    setError('Session expired. Please log in again.');
   };
 
   const createTopTracksPlaylist = async () => {
@@ -83,6 +78,21 @@ function App() {
     setError(null);
 
     try {
+      const testResponse = await fetch('https://api.spotify.com/v1/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!testResponse.ok) {
+        if (testResponse.status === 401 || testResponse.status === 403) {
+          handleTokenExpiration();
+          throw new Error('Session expired. Please log in again.');
+        }
+        throw new Error('Failed to authenticate with Spotify');
+      }
+
       // Get user profile
       const userResponse = await fetch('https://api.spotify.com/v1/me', {
         headers: { 'Authorization': `Bearer ${token}` }
