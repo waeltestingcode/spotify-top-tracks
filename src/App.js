@@ -11,6 +11,8 @@ const SCOPES = [
 
 function App() {
   const [token, setToken] = useState(null);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const hash = window.location.hash
@@ -34,11 +36,20 @@ function App() {
   const createTopTracksPlaylist = async () => {
     if (!token) return;
 
+    setIsLoading(true);
+    setError(null);
+
     try {
       // Get user profile
       const userResponse = await fetch('https://api.spotify.com/v1/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
+      if (!userResponse.ok) {
+        const errorData = await userResponse.json();
+        throw new Error(`Failed to get user profile: ${errorData.error.message}`);
+      }
+      
       const userData = await userResponse.json();
 
       // Get top tracks
@@ -48,7 +59,17 @@ function App() {
           headers: { 'Authorization': `Bearer ${token}` }
         }
       );
+      
+      if (!tracksResponse.ok) {
+        const errorData = await tracksResponse.json();
+        throw new Error(`Failed to get top tracks: ${errorData.error.message}`);
+      }
+      
       const tracksData = await tracksResponse.json();
+
+      if (!tracksData.items || tracksData.items.length === 0) {
+        throw new Error('No top tracks found. Try listening to more music first!');
+      }
 
       // Create new playlist
       const playlistResponse = await fetch(
@@ -65,10 +86,16 @@ function App() {
           })
         }
       );
+      
+      if (!playlistResponse.ok) {
+        const errorData = await playlistResponse.json();
+        throw new Error(`Failed to create playlist: ${errorData.error.message}`);
+      }
+      
       const playlistData = await playlistResponse.json();
 
       // Add tracks to playlist
-      await fetch(
+      const addTracksResponse = await fetch(
         `https://api.spotify.com/v1/playlists/${playlistData.id}/tracks`,
         {
           method: 'POST',
@@ -81,11 +108,19 @@ function App() {
           })
         }
       );
+      
+      if (!addTracksResponse.ok) {
+        const errorData = await addTracksResponse.json();
+        throw new Error(`Failed to add tracks: ${errorData.error.message}`);
+      }
 
       alert('Playlist created successfully!');
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error creating playlist');
+      console.error('Error details:', error);
+      setError(error.message);
+      alert(`Error: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -93,10 +128,16 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>Spotify Top Tracks Playlist Creator</h1>
+        {error && <p className="error-message">{error}</p>}
         {!token ? (
           <button onClick={login}>Login with Spotify</button>
         ) : (
-          <button onClick={createTopTracksPlaylist}>Create Top 10 Playlist</button>
+          <button 
+            onClick={createTopTracksPlaylist}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Creating...' : 'Create Top 10 Playlist'}
+          </button>
         )}
       </header>
     </div>

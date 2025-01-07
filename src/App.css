@@ -25,4 +25,14 @@ button {
 
 button:hover {
   background-color: #1ed760;
+}
+
+.error-message {
+  color: #ff4444;
+  background-color: rgba(255, 0, 0, 0.1);
+  padding: 10px;
+  border-radius: 5px;
+  margin: 10px 0;
+  max-width: 80%;
+  text-align: center;
 } 
